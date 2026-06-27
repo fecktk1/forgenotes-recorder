@@ -76,9 +76,15 @@ function createWindow() {
       desktopCapturer
         .getSources({ types: ['screen'] })
         .then((sources) => {
-          callback({ video: sources[0], audio: 'loopback' })
+          console.log(`[forgenotes:main] loopback request — ${sources.length} screen source(s)`)
+          // Windows system-audio loopback needs a video source alongside audio:'loopback'.
+          // If none enumerated, still try audio-only loopback rather than returning nothing.
+          callback(sources.length ? { video: sources[0], audio: 'loopback' } : { audio: 'loopback' })
         })
-        .catch(() => callback({}))
+        .catch((err) => {
+          console.error('[forgenotes:main] desktopCapturer.getSources failed:', err)
+          callback({ audio: 'loopback' })
+        })
     },
     { useSystemPicker: false },
   )

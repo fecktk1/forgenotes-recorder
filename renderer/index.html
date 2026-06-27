@@ -89,6 +89,8 @@
             <input id="system" type="checkbox" checked />
             <span>Capture system / call audio as a separate track</span>
           </label>
+          <p class="hint">System audio = whatever plays through your <strong>default Windows output</strong>
+            device. Route the call/meeting there, or the “Call audio” meter below stays flat.</p>
 
           <p class="consent">🔴 Recording captures your mic and (if enabled) everyone on the call.
             Make sure participants consent before you start.</p>
@@ -97,6 +99,17 @@
             <button id="start-btn" class="btn primary big">Start recording</button>
             <button id="pause-btn" class="btn ghost hidden">Pause</button>
             <button id="stop-btn" class="btn danger hidden">Stop &amp; upload</button>
+          </div>
+
+          <div id="meters" class="meters hidden">
+            <div class="meter-row">
+              <span class="cap" id="cap-mic">You (mic)</span>
+              <div class="meter"><div id="meter-mic" class="meter-fill"></div></div>
+            </div>
+            <div class="meter-row">
+              <span class="cap" id="cap-system">Call audio</span>
+              <div class="meter"><div id="meter-system" class="meter-fill"></div></div>
+            </div>
           </div>
 
           <p id="status" class="msg hidden"></p>

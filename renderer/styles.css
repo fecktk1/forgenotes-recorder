@@ -158,3 +158,13 @@ html, body {
 .pending-item .meta .s { font-size: 11px; color: var(--muted-2); }
 .pending-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
 .pending-item .actions .btn { height: 30px; padding: 0 10px; font-size: 12px; }
+
+.hint { margin: -4px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted-2); }
+
+.meters { display: flex; flex-direction: column; gap: 8px; }
+.meter-row { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; }
+.cap { font-size: 12px; color: var(--muted); }
+.cap.ok { color: var(--ok); font-weight: 600; }
+.cap.bad { color: var(--warn); font-weight: 600; }
+.meter { height: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ok), var(--accent-strong)); transition: width 0.06s linear; }

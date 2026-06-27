@@ -151,6 +151,51 @@ function pickMime() {
   return ''
 }
 
+// Live RMS meters so you can SEE whether each track is actually receiving audio.
+function setupMeters(micStream, systemStream) {
+  let ctx
+  try {
+    ctx = new AudioContext()
+  } catch {
+    return { stop() {} }
+  }
+  const make = (stream, fillId) => {
+    if (!stream) return null
+    const src = ctx.createMediaStreamSource(stream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 512
+    src.connect(analyser)
+    return { analyser, data: new Uint8Array(analyser.fftSize), fillId }
+  }
+  const meters = [make(micStream, 'meter-mic'), make(systemStream, 'meter-system')].filter(Boolean)
+  let raf = 0
+  const tick = () => {
+    for (const m of meters) {
+      m.analyser.getByteTimeDomainData(m.data)
+      let sum = 0
+      for (const v of m.data) {
+        const x = (v - 128) / 128
+        sum += x * x
+      }
+      const level = Math.min(100, Math.round(Math.sqrt(sum / m.data.length) * 280))
+      const el = document.getElementById(m.fillId)
+      if (el) el.style.width = `${level}%`
+    }
+    raf = requestAnimationFrame(tick)
+  }
+  tick()
+  return {
+    stop() {
+      if (raf) cancelAnimationFrame(raf)
+      ctx.close().catch(() => {})
+      for (const id of ['meter-mic', 'meter-system']) {
+        const el = document.getElementById(id)
+        if (el) el.style.width = '0%'
+      }
+    },
+  }
+}
+
 async function startRecording() {
   setStatus('', null)
   hide('open-link')
@@ -179,10 +224,21 @@ async function startRecording() {
       const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
       disp.getVideoTracks().forEach((t) => t.stop()) // audio only
       const audioTracks = disp.getAudioTracks()
-      if (audioTracks.length) systemStream = new MediaStream(audioTracks)
-      else warning = 'No system-audio track was returned — recording microphone only.'
+      console.log(
+        '[forgenotes] getDisplayMedia tracks:',
+        disp.getTracks().map((t) => `${t.kind}:${t.label || '(no label)'}`),
+      )
+      if (audioTracks.length) {
+        systemStream = new MediaStream(audioTracks)
+        console.log('[forgenotes] system-audio track settings:', audioTracks[0].getSettings())
+      } else {
+        warning =
+          'Windows returned NO system-audio track — recording mic only. Make sure the call plays through your DEFAULT Windows output device.'
+        console.warn('[forgenotes] getDisplayMedia returned no audio track')
+      }
     } catch (e) {
-      warning = `System audio was unavailable (${e.message}) — recording microphone only.`
+      warning = `System audio was unavailable (${e.name}: ${e.message}) — recording mic only.`
+      console.error('[forgenotes] getDisplayMedia failed:', e)
     }
   }
 
@@ -222,6 +278,15 @@ async function startRecording() {
   }
 
   if (warning) setStatus(warning, 'warn')
+
+  // Persistent capture status + live meters — the "Call audio" bar moving means the
+  // meeting is actually being captured; flat means mic-only.
+  const sysEl = $('cap-system')
+  sysEl.textContent = systemStream ? 'Call audio: capturing' : 'Call audio: NOT captured — mic only'
+  sysEl.className = systemStream ? 'cap ok' : 'cap bad'
+  rec.meters = setupMeters(micStream, systemStream)
+  show('meters')
+
   $('start-btn').classList.add('hidden')
   $('pause-btn').classList.remove('hidden')
   $('stop-btn').classList.remove('hidden')
@@ -280,6 +345,8 @@ async function stopRecording() {
   const current = rec
   rec = null
   clearInterval(current.timer)
+  if (current.meters) current.meters.stop()
+  hide('meters')
   hide('rec-indicator')
   $('pause-btn').classList.add('hidden')
   $('stop-btn').classList.add('hidden')
