@@ -1,0 +1,34 @@
+{
+  "name": "forgenotes-recorder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ForgeNotes desktop recorder — captures mic + system audio as separate tracks and uploads to the ForgeNotes pipeline.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "io.thecontentforge.forgenotes.recorder",
+    "productName": "ForgeNotes Recorder",
+    "files": ["main.js", "preload.js", "renderer/**", "config.json", "config.example.json"],
+    "directories": { "output": "release" },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "identity": null,
+      "category": "public.app-category.productivity"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
