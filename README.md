@@ -75,9 +75,18 @@ signing (Authenticode) is a later step — for now the installer is unsigned (Sm
 "More info → Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
 [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
 
+## Troubleshooting
+
+**`Cannot create symbolic link … A required privilege is not held by the client`** during
+`npm run dist:win` — electron-builder unpacks its `winCodeSign` tooling, which contains macOS
+symlinks that Windows only lets you create with extra privilege. The app itself packages fine
+(`release/win-unpacked/`); only the NSIS installer step needs this. Fix either way:
+- Run `npm run dist:win` from an **Administrator** PowerShell, **or**
+- Turn on **Developer Mode** (Settings → System → For developers → Developer Mode → On), then build normally.
+
 ## Notes / limitations (v1)
 
 - Each track uploads as a single complete `*.webm` (Opus) file (`seq: 0`), exactly like a web
   manual upload — the transcription worker handles `mic` + `system` per-track speaker labelling.
 - Recording controls live in the app window; there's no global hotkey or tray recorder yet.
-- macOS multi-track via **BlackHole 2ch** + ad-hoc packaging is the next phase.
+- The macOS build is a separate app: [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
