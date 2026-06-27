@@ -6,8 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac"
+    "dist:win": "electron-builder --win"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -18,14 +17,9 @@
     "productName": "ForgeNotes Recorder",
     "files": ["main.js", "preload.js", "renderer/**", "icon.png", "config.json", "config.example.json"],
     "directories": { "output": "release" },
+    "artifactName": "ForgeNotes-Recorder-Setup.${ext}",
     "win": {
       "target": "nsis",
-      "icon": "icon.png"
-    },
-    "mac": {
-      "target": "dmg",
-      "identity": null,
-      "category": "public.app-category.productivity",
       "icon": "icon.png"
     },
     "nsis": {
