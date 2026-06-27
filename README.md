@@ -65,13 +65,15 @@ and **Discard**. Nothing is lost on a network blip. A successful upload deletes 
 ## Building an installer
 
 ```sh
-npm run dist:win     # Windows NSIS installer in release/
-npm run dist:mac     # macOS .dmg (next phase; ad-hoc signed, identity: null)
+npm run dist:win
 ```
+Produces `release/ForgeNotes Recorder Setup <version>.exe` — an NSIS installer branded with the
+ForgeNotes icon (Start-menu shortcut + uninstaller, choose-install-dir).
 
 For distribution to other machines, bundle a `config.json` (or have each user create one). Code
-signing (Authenticode on Windows) is a later step — for now the installer is unsigned and intended
-for internal use.
+signing (Authenticode) is a later step — for now the installer is unsigned (SmartScreen may warn;
+"More info → Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
+[forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
 
 ## Notes / limitations (v1)
 

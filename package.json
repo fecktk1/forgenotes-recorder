@@ -16,15 +16,17 @@
   "build": {
     "appId": "io.thecontentforge.forgenotes.recorder",
     "productName": "ForgeNotes Recorder",
-    "files": ["main.js", "preload.js", "renderer/**", "config.json", "config.example.json"],
+    "files": ["main.js", "preload.js", "renderer/**", "icon.png", "config.json", "config.example.json"],
     "directories": { "output": "release" },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icon.png"
     },
     "mac": {
       "target": "dmg",
       "identity": null,
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "icon": "icon.png"
     },
     "nsis": {
       "oneClick": false,

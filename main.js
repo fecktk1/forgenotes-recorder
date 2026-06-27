@@ -59,6 +59,7 @@ function createWindow() {
     minHeight: 640,
     title: 'ForgeNotes Recorder',
     backgroundColor: '#09090b',
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
