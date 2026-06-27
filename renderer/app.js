@@ -15,7 +15,13 @@ let rec = null // active recording state
 // ---------------------------------------------------------------- boot
 async function boot() {
   CFG = await window.desktop.getConfig()
-  if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) {
+  if (CFG._parseError || !CFG.supabaseUrl || !CFG.supabaseAnonKey) {
+    if (CFG._parseError) {
+      const detail = document.querySelector('#config-error p')
+      if (detail) {
+        detail.textContent = `${CFG._parseError}. Open config.json and make sure every value — especially the anon key — is wrapped in double quotes, then restart.`
+      }
+    }
     show('config-error')
     return
   }

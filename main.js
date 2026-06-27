@@ -20,22 +20,35 @@ const REC_DIR = () => path.join(USER_DATA(), 'recordings')
 let mainWindow = null
 
 async function loadConfig() {
-  // Priority: user config in userData (packaged installs) → repo config.json (dev) → example.
-  const candidates = [
-    path.join(USER_DATA(), 'config.json'),
-    path.join(__dirname, 'config.json'),
-    path.join(__dirname, 'config.example.json'),
-  ]
-  for (const file of candidates) {
+  // A real user config (userData for packaged installs, repo config.json for dev) wins.
+  // If it EXISTS but is malformed, surface that loudly instead of silently falling back to
+  // the example — otherwise a typo (e.g. an unquoted anon key) just looks like "key not set".
+  for (const file of [path.join(USER_DATA(), 'config.json'), path.join(__dirname, 'config.json')]) {
+    let raw
     try {
-      const raw = await fs.readFile(file, 'utf8')
-      const cfg = JSON.parse(raw)
-      if (cfg && cfg.supabaseUrl) return { ...cfg, _source: file }
+      raw = await fs.readFile(file, 'utf8')
     } catch {
-      // try next
+      continue // no config at this location
+    }
+    try {
+      return { ...JSON.parse(raw), _source: file }
+    } catch (e) {
+      return {
+        supabaseUrl: '',
+        supabaseAnonKey: '',
+        forgenotesHost: '',
+        _source: file,
+        _parseError: `${path.basename(file)} is not valid JSON (${e.message})`,
+      }
     }
   }
-  return { supabaseUrl: '', supabaseAnonKey: '', forgenotesHost: '', _source: null }
+  // No user config anywhere → committed example (URL/host defaults, empty key = "Setup needed").
+  try {
+    const example = JSON.parse(await fs.readFile(path.join(__dirname, 'config.example.json'), 'utf8'))
+    return { ...example, _source: 'config.example.json' }
+  } catch {
+    return { supabaseUrl: '', supabaseAnonKey: '', forgenotesHost: '', _source: null }
+  }
 }
 
 function createWindow() {
