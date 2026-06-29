@@ -1,12 +1,16 @@
 {
   "name": "forgenotes-recorder",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "ForgeNotes desktop recorder — captures mic + system audio as separate tracks and uploads to the ForgeNotes pipeline.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win"
+    "dist:win": "electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -18,6 +22,12 @@
     "files": ["main.js", "preload.js", "renderer/**", "icon.png", "config.json", "config.example.json"],
     "directories": { "output": "release" },
     "artifactName": "ForgeNotes-Recorder-Setup.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "fecktk1",
+      "repo": "forgenotes-recorder",
+      "releaseType": "release"
+    },
     "win": {
       "target": "nsis",
       "icon": "icon.png"

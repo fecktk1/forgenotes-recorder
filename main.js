@@ -10,6 +10,15 @@ const { app, BrowserWindow, ipcMain, shell, session, desktopCapturer, safeStorag
 const path = require('node:path')
 const fs = require('node:fs/promises')
 
+// Auto-update from GitHub Releases (packaged Windows only). Wrapped so a dev run or a
+// missing module never crashes startup.
+let autoUpdater = null
+try {
+  ;({ autoUpdater } = require('electron-updater'))
+} catch {
+  autoUpdater = null
+}
+
 // macOS system-audio-for-screenshare (harmless on Windows; needed for the Mac phase).
 app.commandLine.appendSwitch('enable-features', 'MacLoopbackAudioForScreenShare')
 
@@ -208,6 +217,13 @@ ipcMain.handle('rec:delete', async (_e, localId) => {
 // ---------- lifecycle ----------
 app.whenReady().then(() => {
   createWindow()
+  // Check GitHub Releases for a newer version, download it, and install on next quit.
+  // Unsigned is fine on Windows: electron-updater verifies the download by sha512.
+  if (autoUpdater && app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify().catch((e) => {
+      console.warn('[forgenotes] update check failed:', (e && e.message) || e)
+    })
+  }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
