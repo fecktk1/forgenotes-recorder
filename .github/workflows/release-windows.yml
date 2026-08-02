@@ -1,0 +1,68 @@
+name: Build Windows internal release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Confirm tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      - run: npm ci
+
+      - name: Build x64 internal installer
+        run: npm run dist:win
+        env:
+          FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
+
+      - name: Verify installer and create checksum
+        shell: pwsh
+        run: |
+          $installer = 'release/ForgeNotes-Recorder-Setup.exe'
+          if (-not (Test-Path $installer)) { throw "Missing installer: $installer" }
+          if ((Get-Item $installer).Length -lt 50MB) { throw 'Installer is unexpectedly small' }
+          (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() + '  ForgeNotes-Recorder-Setup.exe' |
+            Set-Content 'release/ForgeNotes-Recorder-Setup.exe.sha256' -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ForgeNotes-Recorder-Windows-${{ github.sha }}
+          path: |
+            release/ForgeNotes-Recorder-Setup.exe
+            release/ForgeNotes-Recorder-Setup.exe.sha256
+          if-no-files-found: error
+
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          release/ForgeNotes-Recorder-Setup.exe
+          release/ForgeNotes-Recorder-Setup.exe.sha256
+          --verify-tag
+          --title "$GITHUB_REF_NAME — internal Windows build"
+          --notes "Internal unsigned Windows build. Windows SmartScreen may require More info → Run anyway."
+        env:
+          GH_TOKEN: ${{ github.token }}

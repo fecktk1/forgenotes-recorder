@@ -1,12 +1,14 @@
 {
   "name": "forgenotes-recorder",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "ForgeNotes desktop recorder — captures mic + system audio as separate tracks and uploads to the ForgeNotes pipeline.",
+  "description": "ForgeNotes desktop recorder for online calls and single-microphone room recordings.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win --publish never",
+    "verify": "node --check renderer/app.js && node --check main.js && node scripts/verify-capture-profile.mjs",
+    "prepare:config": "node scripts/write-production-config.mjs",
+    "dist:win": "npm run prepare:config && electron-builder --win --x64 --publish never",
     "release": "electron-builder --win --publish always"
   },
   "dependencies": {

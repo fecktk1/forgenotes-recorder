@@ -1,13 +1,9 @@
 # ForgeNotes Recorder (desktop)
 
-A tiny Electron app that records a meeting as **two separate tracks** — your microphone
-(`mic`) and the system/call audio (`system`) — and uploads them straight into the ForgeNotes
-pipeline (the same `create-session → upload-file → finalize-session` flow the web app uses).
-Two clean tracks transcribe far better than one mixed track when people talk over each other.
-
-> **Phase status:** Windows is the build/test target first; the macOS (BlackHole) capture path
-> lands in the next phase. The code already enables the macOS loopback Chromium feature, so the
-> renderer logic is shared — only packaging/device guidance differs.
+A tiny Electron app with two recording setups: **Online call** records your microphone and
+system/call audio as separate tracks; **In person / room** records one room microphone and asks
+ForgeNotes to separate the speakers during transcription. Both use the same
+`create-session → upload-file → finalize-session` flow as the web app.
 
 ## How audio capture works
 
@@ -47,8 +43,8 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 1. **Sign in** with your ForgeNotes account (the email must be on the ForgeNotes allowlist — e.g.
    `support@thecontentforge.io`). The session is stored encrypted on this device (OS safeStorage),
    so you stay signed in.
-2. Enter a title, pick the **source** and **visibility**, choose your **microphone**, and leave
-   **Capture system / call audio** checked.
+2. Choose **Online call** or **In person / room**, then enter a title, source, visibility, and
+   microphone. Online calls can capture system audio; room mode deliberately records one mic.
 3. **Start recording.** System audio is captured automatically — the app supplies the loopback
    source itself, so **no screen-picker dialog appears**. A red indicator + timer shows while
    recording. Pause/resume as needed. (If you ever record mic-only unexpectedly, the status line
@@ -67,7 +63,7 @@ and **Discard**. Nothing is lost on a network blip. A successful upload deletes 
 ```sh
 npm run dist:win
 ```
-Produces `release/ForgeNotes Recorder Setup <version>.exe` — an NSIS installer branded with the
+Produces `release/ForgeNotes-Recorder-Setup.exe` — an NSIS installer branded with the
 ForgeNotes icon (Start-menu shortcut + uninstaller, choose-install-dir).
 
 For distribution to other machines, bundle a `config.json` (or have each user create one). Code
@@ -84,9 +80,17 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 - Run `npm run dist:win` from an **Administrator** PowerShell, **or**
 - Turn on **Developer Mode** (Settings → System → For developers → Developer Mode → On), then build normally.
 
-## Notes / limitations (v1)
+## Recording and playback notes
 
-- Each track uploads as a single complete `*.webm` (Opus) file (`seq: 0`), exactly like a web
-  manual upload — the transcription worker handles `mic` + `system` per-track speaker labelling.
+- Long recordings upload as private five-minute WebM segments for reliability. ForgeNotes creates
+  one normalized playback file after upload, so owners and shared-link viewers never see segments.
+- In-person mode sends `room_single_mic`; the transcription worker diarizes that microphone rather
+  than labeling every voice as the owner.
 - Recording controls live in the app window; there's no global hotkey or tray recorder yet.
 - The macOS build is a separate app: [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
+
+## GitHub release workflow
+
+The repository secret `FORGENOTES_SUPABASE_ANON_KEY` must contain only the public Supabase anon
+JWT. Pushing a version tag (for example `v0.4.0`) builds the x64 installer on Windows, publishes
+the installer plus SHA-256 checksum, and keeps the runtime service-role credential out of the app.
