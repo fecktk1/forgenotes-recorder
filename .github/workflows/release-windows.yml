@@ -37,12 +37,17 @@ jobs:
         env:
           FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
 
-      - name: Verify installer and create checksum
+      - name: Verify installer + auto-update assets, create checksum
         shell: pwsh
         run: |
           $installer = 'release/ForgeNotes-Recorder-Setup.exe'
           if (-not (Test-Path $installer)) { throw "Missing installer: $installer" }
           if ((Get-Item $installer).Length -lt 50MB) { throw 'Installer is unexpectedly small' }
+          # electron-updater in installed apps polls releases/latest/download/latest.yml —
+          # a release without latest.yml + .blockmap silently BREAKS auto-update for every
+          # installed copy (this happened with v0.4.0). Fail the build instead.
+          if (-not (Test-Path 'release/latest.yml')) { throw 'Missing release/latest.yml (auto-update feed)' }
+          if (-not (Test-Path 'release/ForgeNotes-Recorder-Setup.exe.blockmap')) { throw 'Missing installer blockmap (differential auto-update)' }
           (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() + '  ForgeNotes-Recorder-Setup.exe' |
             Set-Content 'release/ForgeNotes-Recorder-Setup.exe.sha256' -Encoding ascii
 
@@ -51,6 +56,8 @@ jobs:
           name: ForgeNotes-Recorder-Windows-${{ github.sha }}
           path: |
             release/ForgeNotes-Recorder-Setup.exe
+            release/ForgeNotes-Recorder-Setup.exe.blockmap
+            release/latest.yml
             release/ForgeNotes-Recorder-Setup.exe.sha256
           if-no-files-found: error
 
@@ -60,6 +67,8 @@ jobs:
         run: >-
           gh release create "$GITHUB_REF_NAME"
           release/ForgeNotes-Recorder-Setup.exe
+          release/ForgeNotes-Recorder-Setup.exe.blockmap
+          release/latest.yml
           release/ForgeNotes-Recorder-Setup.exe.sha256
           --verify-tag
           --title "$GITHUB_REF_NAME — internal Windows build"
