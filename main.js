@@ -255,7 +255,9 @@ app.whenReady().then(() => {
   createWindow()
   // Check GitHub Releases for a newer version, download it, and install on next quit.
   // Unsigned is fine on Windows: electron-updater verifies the download by sha512.
-  if (autoUpdater && app.isPackaged) {
+  // NOT in the Store build: a Store-installed app is updated by the Store, and an app that
+  // tries to update itself out from under the Store fails certification.
+  if (autoUpdater && app.isPackaged && !process.windowsStore) {
     autoUpdater.checkForUpdatesAndNotify().catch((e) => {
       console.warn('[forgenotes] update check failed:', (e && e.message) || e)
     })

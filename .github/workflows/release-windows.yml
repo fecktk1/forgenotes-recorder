@@ -34,6 +34,20 @@ jobs:
 
       - name: Build x64 internal installer
         run: npm run dist:win
+
+      # The Microsoft Store package: an UNSIGNED .appx that Partner Center accepts and
+      # Microsoft re-signs after certification. Never attached to the GitHub release —
+      # it is only useful uploaded to the Store, and publishing an unsigned installer
+      # alongside the NSIS one would just confuse people.
+      - name: Build Microsoft Store package (appx)
+        run: npm run dist:store
+
+      - name: Upload Store package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: forgenotes-recorder-appx
+          path: release/*.appx
+          if-no-files-found: error
         env:
           FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
 

@@ -9,20 +9,30 @@
     "verify": "node --check renderer/app.js && node --check main.js && node scripts/verify-capture-profile.mjs",
     "prepare:config": "node scripts/write-production-config.mjs",
     "dist:win": "npm run prepare:config && electron-builder --win --x64 --publish never",
-    "release": "electron-builder --win --publish always"
+    "release": "electron-builder --win --publish always",
+    "dist:store": "npm run prepare:config && electron-builder --win appx --x64 --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "26.15.3"
   },
   "build": {
     "appId": "io.thecontentforge.forgenotes.recorder",
     "productName": "ForgeNotes Recorder",
-    "files": ["main.js", "preload.js", "renderer/**", "icon.png", "config.json", "config.example.json"],
-    "directories": { "output": "release" },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "icon.png",
+      "config.json",
+      "config.example.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
     "artifactName": "ForgeNotes-Recorder-Setup.${ext}",
     "publish": {
       "provider": "github",
@@ -37,6 +47,20 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "appx": {
+      "identityName": "TheContentForge.ForgeNotes",
+      "publisher": "CN=A84C1C04-6C8F-437D-9CBF-B6FF012AA829",
+      "publisherDisplayName": "TheContentForge",
+      "displayName": "ForgeNotes",
+      "applicationId": "ForgeNotesRecorder",
+      "backgroundColor": "#141414",
+      "languages": [
+        "en-US"
+      ],
+      "capabilities": [
+        "microphone"
+      ]
     }
   }
 }
