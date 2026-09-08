@@ -32,6 +32,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Verify capture and local recording storage
+        run: |
+          npm run verify
+          npm test
+
       - name: Build x64 internal installer
         run: npm run dist:win
         env:

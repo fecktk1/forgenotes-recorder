@@ -40,23 +40,12 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 
 ## Using it
 
-1. **Sign in** with your ForgeNotes account (the email must be on the ForgeNotes allowlist — e.g.
-   `support@thecontentforge.io`). The session is stored encrypted on this device (OS safeStorage),
-   so you stay signed in.
-2. Choose **Online call** or **In person / room**, then enter a title, source, visibility, and
-   microphone. Online calls can capture system audio; room mode deliberately records one mic.
-3. **Start recording.** System audio is captured automatically — the app supplies the loopback
-   source itself, so **no screen-picker dialog appears**. A red indicator + timer shows while
-   recording. Pause/resume as needed. (If you ever record mic-only unexpectedly, the status line
-   says so — that's the visible fallback, not a silent failure.)
-4. **Stop & upload.** The recording is saved locally first, then uploaded. On success you get an
-   **Open in ForgeNotes** link; the meeting transcribes/​summarizes automatically.
+1. Choose **Record locally** or sign in to your ForgeNotes account.
+2. Select Online call or In person / room, choose your microphone, and check the input meters.
+3. Start recording. Pause/resume when needed.
+4. **Stop & save** keeps the recording on this device. Use **Play recording**, **Open folder**, or **Upload & transcribe** in the local library. Upload requires an authorized account. Automatic upload is opt-in.
 
-## Offline / failed uploads
-
-Every recording is written to disk before upload (under the app's userData folder). If the upload
-fails (offline, token expired, server hiccup), it appears under **Pending uploads** with **Retry**
-and **Discard**. Nothing is lost on a network blip. A successful upload deletes the local copy.
+Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
 
 ## Building an installer
 
@@ -82,7 +71,7 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 
 ## Recording and playback notes
 
-- Long recordings upload as private five-minute WebM segments for reliability. ForgeNotes creates
+- Long recordings upload as private one-minute WebM segments for reliability. ForgeNotes creates
   one normalized playback file after upload, so owners and shared-link viewers never see segments.
 - In-person mode sends `room_single_mic`; the transcription worker diarizes that microphone rather
   than labeling every voice as the owner.
@@ -94,3 +83,5 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 The repository secret `FORGENOTES_SUPABASE_ANON_KEY` must contain only the public Supabase anon
 JWT. Pushing a version tag (for example `v0.4.0`) builds the x64 installer on Windows, publishes
 the installer plus SHA-256 checksum, and keeps the runtime service-role credential out of the app.
+
+See [RELEASE.md](RELEASE.md) for Windows 1.0.0 builds, GitHub publication and Microsoft Store submission.
