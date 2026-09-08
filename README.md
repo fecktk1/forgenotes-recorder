@@ -3,19 +3,19 @@
 A tiny Electron app with two recording setups: **Online call** records your microphone and
 system/call audio as separate tracks; **In person / room** records one room microphone and asks
 ForgeNotes to separate the speakers during transcription. Both use the same
-`create-session → upload-file → finalize-session` flow as the web app.
+`create-session â†’ upload-file â†’ finalize-session` flow as the web app.
 
 ## How audio capture works
 
-- **Microphone** → `getUserMedia` on the selected input device.
-- **System / call audio** → `getDisplayMedia({ audio: true })`, which the Electron main process
-  answers with **system loopback audio** (`setDisplayMediaRequestHandler` → `audio: 'loopback'`).
-  On Windows this is the WASAPI loopback of everything playing out of your default output — so
+- **Microphone** â†’ `getUserMedia` on the selected input device.
+- **System / call audio** â†’ `getDisplayMedia({ audio: true })`, which the Electron main process
+  answers with **system loopback audio** (`setDisplayMediaRequestHandler` â†’ `audio: 'loopback'`).
+  On Windows this is the WASAPI loopback of everything playing out of your default output â€” so
   whatever you hear on the call is captured. No virtual cable or native addon required.
 - If system capture is blocked or returns no audio track, the app records **mic-only** and shows a
   visible warning (never a silent failure).
 
-The video track that `getDisplayMedia` returns is stopped immediately — only audio is recorded.
+The video track that `getDisplayMedia` returns is stopped immediately â€” only audio is recorded.
 
 ## First-time setup (dev run)
 
@@ -30,7 +30,7 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
    # cp config.example.json config.json   # macOS/Linux
    ```
    Then open `config.json` and paste the **public Supabase anon key** into `supabaseAnonKey`.
-   It's the same key the web app ships — copy it from Netlify (`VITE_SUPABASE_ANON_KEY`) or from
+   It's the same key the web app ships â€” copy it from Netlify (`VITE_SUPABASE_ANON_KEY`) or from
    the web app's network requests. **Never** put the service-role key here. `config.json` is
    git-ignored.
 4. Start it:
@@ -40,49 +40,38 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 
 ## Using it
 
-1. **Sign in** with your ForgeNotes account (the email must be on the ForgeNotes allowlist — e.g.
-   `support@thecontentforge.io`). The session is stored encrypted on this device (OS safeStorage),
-   so you stay signed in.
-2. Choose **Online call** or **In person / room**, then enter a title, source, visibility, and
-   microphone. Online calls can capture system audio; room mode deliberately records one mic.
-3. **Start recording.** System audio is captured automatically — the app supplies the loopback
-   source itself, so **no screen-picker dialog appears**. A red indicator + timer shows while
-   recording. Pause/resume as needed. (If you ever record mic-only unexpectedly, the status line
-   says so — that's the visible fallback, not a silent failure.)
-4. **Stop & upload.** The recording is saved locally first, then uploaded. On success you get an
-   **Open in ForgeNotes** link; the meeting transcribes/​summarizes automatically.
+1. Choose **Record locally** or sign in to your ForgeNotes account.
+2. Select Online call or In person / room, choose your microphone, and check the input meters.
+3. Start recording. Pause/resume when needed.
+4. **Stop & save** keeps the recording on this device. Use **Play recording**, **Open folder**, or **Upload & transcribe** in the local library. Upload requires an authorized account. Automatic upload is opt-in.
 
-## Offline / failed uploads
-
-Every recording is written to disk before upload (under the app's userData folder). If the upload
-fails (offline, token expired, server hiccup), it appears under **Pending uploads** with **Retry**
-and **Discard**. Nothing is lost on a network blip. A successful upload deletes the local copy.
+Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
 
 ## Building an installer
 
 ```sh
 npm run dist:win
 ```
-Produces `release/ForgeNotes-Recorder-Setup.exe` — an NSIS installer branded with the
+Produces `release/ForgeNotes-Recorder-Setup.exe` â€” an NSIS installer branded with the
 ForgeNotes icon (Start-menu shortcut + uninstaller, choose-install-dir).
 
 For distribution to other machines, bundle a `config.json` (or have each user create one). Code
-signing (Authenticode) is a later step — for now the installer is unsigned (SmartScreen may warn;
-"More info → Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
+signing (Authenticode) is a later step â€” for now the installer is unsigned (SmartScreen may warn;
+"More info â†’ Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
 [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
 
 ## Troubleshooting
 
-**`Cannot create symbolic link … A required privilege is not held by the client`** during
-`npm run dist:win` — electron-builder unpacks its `winCodeSign` tooling, which contains macOS
+**`Cannot create symbolic link â€¦ A required privilege is not held by the client`** during
+`npm run dist:win` â€” electron-builder unpacks its `winCodeSign` tooling, which contains macOS
 symlinks that Windows only lets you create with extra privilege. The app itself packages fine
 (`release/win-unpacked/`); only the NSIS installer step needs this. Fix either way:
 - Run `npm run dist:win` from an **Administrator** PowerShell, **or**
-- Turn on **Developer Mode** (Settings → System → For developers → Developer Mode → On), then build normally.
+- Turn on **Developer Mode** (Settings â†’ System â†’ For developers â†’ Developer Mode â†’ On), then build normally.
 
 ## Recording and playback notes
 
-- Long recordings upload as private five-minute WebM segments for reliability. ForgeNotes creates
+- Long recordings upload as private one-minute WebM segments for reliability. ForgeNotes creates
   one normalized playback file after upload, so owners and shared-link viewers never see segments.
 - In-person mode sends `room_single_mic`; the transcription worker diarizes that microphone rather
   than labeling every voice as the owner.
@@ -94,3 +83,5 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 The repository secret `FORGENOTES_SUPABASE_ANON_KEY` must contain only the public Supabase anon
 JWT. Pushing a version tag (for example `v0.4.0`) builds the x64 installer on Windows, publishes
 the installer plus SHA-256 checksum, and keeps the runtime service-role credential out of the app.
+
+See [RELEASE.md](RELEASE.md) for Windows 1.0.0 builds, GitHub publication and Microsoft Store submission.

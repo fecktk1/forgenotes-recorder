@@ -1,6 +1,6 @@
 {
   "name": "forgenotes-recorder",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "private": true,
   "description": "ForgeNotes desktop recorder for online calls and single-microphone room recordings.",
   "main": "main.js",
@@ -10,7 +10,7 @@
     "prepare:config": "node scripts/write-production-config.mjs",
     "dist:win": "npm run prepare:config && electron-builder --win --x64 --publish never",
     "release": "electron-builder --win --publish always",
-    "dist:store": "npm run prepare:config && electron-builder --win appx --x64 --publish never",
+    "dist:store": "npm run prepare:config && electron-builder --win appx --x64 --publish never && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-store-package.ps1",
     "test": "node --test scripts/test-recording-store.cjs"
   },
   "dependencies": {
