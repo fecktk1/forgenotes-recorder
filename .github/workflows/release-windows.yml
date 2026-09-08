@@ -62,7 +62,7 @@ jobs:
           FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
 
       - name: Upload Store package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: forgenotes-recorder-appx
           path: release/*.appx
@@ -82,7 +82,7 @@ jobs:
           (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() + '  ForgeNotes-Recorder-Setup.exe' |
             Set-Content 'release/ForgeNotes-Recorder-Setup.exe.sha256' -Encoding ascii
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ForgeNotes-Recorder-Windows-${{ github.sha }}
           path: |
