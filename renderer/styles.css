@@ -213,3 +213,8 @@ html, body {
 .cap.bad { color: var(--warn); font-weight: 600; }
 .meter { height: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ok), var(--accent-strong)); transition: width 0.06s linear; }
+
+#local-player { padding: 12px; border: 1px solid var(--border); border-radius: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+#local-player.hidden { display: none; }
+#local-player input[type="range"], #local-player p { width: 100%; }
+.pending-item .actions { flex-wrap: wrap; gap: 6px; }

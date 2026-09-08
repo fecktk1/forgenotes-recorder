@@ -185,8 +185,25 @@ ipcMain.handle('log:append', async (_e, line) => {
 })
 
 // ---------- IPC: local recording fallback / offline queue ----------
+const { recordingStore } = require('./recording-store')
+const store = () => recordingStore(REC_DIR())
+let recordings
+const localStore = () => recordings || (recordings = store())
+ipcMain.handle('rec:checkpoint', (_e, { localId, meta, segment }) => localStore().checkpoint(localId, meta, segment))
+ipcMain.handle('rec:finish', (_e, localId) => localStore().update(localId, { state: 'saved' }))
+ipcMain.handle('rec:uploaded', (_e, { localId, sessionId }) => localStore().update(localId, { state: 'uploaded', sessionId }))
+ipcMain.handle('rec:segment', (_e, { localId, segment }) => localStore().readSegment(localId, segment))
+ipcMain.handle('rec:playback', (_e, localId) => localStore().playback(localId))
+ipcMain.handle('rec:folder', async (_e, localId) => {
+  const dir = localStore().directory(localId)
+  if (!(await fs.stat(dir)).isDirectory()) throw new Error('recording_folder_missing')
+  const error = await shell.openPath(dir)
+  if (error) throw new Error(error)
+})
+
 function safeId(id) {
-  return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '')
+  if (!/^[a-zA-Z0-9_-]+$/.test(String(id || ''))) throw new Error('invalid_local_id')
+  return id
 }
 
 ipcMain.handle('rec:save', async (_e, { localId, meta, segments }) => {
@@ -217,7 +234,7 @@ ipcMain.handle('rec:list', async () => {
       const meta = JSON.parse(await fs.readFile(path.join(REC_DIR(), ent.name, 'meta.json'), 'utf8'))
       out.push({ localId: ent.name, meta })
     } catch {
-      // skip corrupt/partial dir
+      out.push({ localId: ent.name, meta: { title: 'Interrupted recording — inspect saved files', state: 'damaged' } })
     }
   }
   // newest first
@@ -237,7 +254,7 @@ ipcMain.handle('rec:read', async (_e, localId) => {
       // Fresh ArrayBuffer slice so structured-clone sends bytes, not the Buffer pool.
       segments.push({ track: seg.track, seq: seg.seq ?? 0, data: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) })
     } catch {
-      // missing segment file
+      throw new Error('Recording is incomplete: a saved audio segment is missing.')
     }
   }
   return { meta, segments }
@@ -246,7 +263,8 @@ ipcMain.handle('rec:read', async (_e, localId) => {
 ipcMain.handle('rec:delete', async (_e, localId) => {
   const id = safeId(localId)
   if (!id) return false
-  await fs.rm(path.join(REC_DIR(), id), { recursive: true, force: true })
+  const target = localStore().directory(id)
+  await fs.rm(target, { recursive: true, force: true })
   return true
 })
 
