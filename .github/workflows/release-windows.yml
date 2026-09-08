@@ -43,7 +43,7 @@ jobs:
           FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
 
       # The Microsoft Store package: an UNSIGNED .appx that Partner Center accepts and
-      # Microsoft re-signs after certification. Never attached to the GitHub release â€”
+      # Microsoft re-signs after certification. Never attached to the GitHub release —
       # it is only useful uploaded to the Store, and publishing an unsigned installer
       # alongside the NSIS one would just confuse people.
       - name: Build Microsoft Store package (appx)
@@ -64,7 +64,7 @@ jobs:
           $installer = 'release/ForgeNotes-Recorder-Setup.exe'
           if (-not (Test-Path $installer)) { throw "Missing installer: $installer" }
           if ((Get-Item $installer).Length -lt 50MB) { throw 'Installer is unexpectedly small' }
-          # electron-updater in installed apps polls releases/latest/download/latest.yml â€”
+          # electron-updater in installed apps polls releases/latest/download/latest.yml —
           # a release without latest.yml + .blockmap silently BREAKS auto-update for every
           # installed copy (this happened with v0.4.0). Fail the build instead.
           if (-not (Test-Path 'release/latest.yml')) { throw 'Missing release/latest.yml (auto-update feed)' }
@@ -88,7 +88,7 @@ jobs:
         run: |
           # Tag push: publish exactly that tag (--verify-tag, unchanged behavior).
           # Manual dispatch: publish v<package.json version> and let gh mint the tag
-          # at this commit via --target â€” so releases can be cut from environments
+          # at this commit via --target — so releases can be cut from environments
           # that can push branches but not tags.
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="$GITHUB_REF_NAME"
@@ -103,7 +103,7 @@ jobs:
             release/latest.yml \
             release/ForgeNotes-Recorder-Setup.exe.sha256 \
             "${EXTRA[@]}" \
-            --title "$TAG â€” internal Windows build" \
-            --notes "Internal unsigned Windows build. Windows SmartScreen may require More info â†’ Run anyway."
+            --title "$TAG — internal Windows build" \
+            --notes "Internal unsigned Windows build. Windows SmartScreen may require More info → Run anyway."
         env:
           GH_TOKEN: ${{ github.token }}

@@ -3,19 +3,19 @@
 A tiny Electron app with two recording setups: **Online call** records your microphone and
 system/call audio as separate tracks; **In person / room** records one room microphone and asks
 ForgeNotes to separate the speakers during transcription. Both use the same
-`create-session â†’ upload-file â†’ finalize-session` flow as the web app.
+`create-session → upload-file → finalize-session` flow as the web app.
 
 ## How audio capture works
 
-- **Microphone** â†’ `getUserMedia` on the selected input device.
-- **System / call audio** â†’ `getDisplayMedia({ audio: true })`, which the Electron main process
-  answers with **system loopback audio** (`setDisplayMediaRequestHandler` â†’ `audio: 'loopback'`).
-  On Windows this is the WASAPI loopback of everything playing out of your default output â€” so
+- **Microphone** → `getUserMedia` on the selected input device.
+- **System / call audio** → `getDisplayMedia({ audio: true })`, which the Electron main process
+  answers with **system loopback audio** (`setDisplayMediaRequestHandler` → `audio: 'loopback'`).
+  On Windows this is the WASAPI loopback of everything playing out of your default output — so
   whatever you hear on the call is captured. No virtual cable or native addon required.
 - If system capture is blocked or returns no audio track, the app records **mic-only** and shows a
   visible warning (never a silent failure).
 
-The video track that `getDisplayMedia` returns is stopped immediately â€” only audio is recorded.
+The video track that `getDisplayMedia` returns is stopped immediately — only audio is recorded.
 
 ## First-time setup (dev run)
 
@@ -30,7 +30,7 @@ The video track that `getDisplayMedia` returns is stopped immediately â€” o
    # cp config.example.json config.json   # macOS/Linux
    ```
    Then open `config.json` and paste the **public Supabase anon key** into `supabaseAnonKey`.
-   It's the same key the web app ships â€” copy it from Netlify (`VITE_SUPABASE_ANON_KEY`) or from
+   It's the same key the web app ships — copy it from Netlify (`VITE_SUPABASE_ANON_KEY`) or from
    the web app's network requests. **Never** put the service-role key here. `config.json` is
    git-ignored.
 4. Start it:
@@ -52,22 +52,22 @@ Completed one-minute segments are checkpointed to disk during capture. Restartin
 ```sh
 npm run dist:win
 ```
-Produces `release/ForgeNotes-Recorder-Setup.exe` â€” an NSIS installer branded with the
+Produces `release/ForgeNotes-Recorder-Setup.exe` — an NSIS installer branded with the
 ForgeNotes icon (Start-menu shortcut + uninstaller, choose-install-dir).
 
 For distribution to other machines, bundle a `config.json` (or have each user create one). Code
-signing (Authenticode) is a later step â€” for now the installer is unsigned (SmartScreen may warn;
-"More info â†’ Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
+signing (Authenticode) is a later step — for now the installer is unsigned (SmartScreen may warn;
+"More info → Run anyway"), intended for internal use. The **macOS** build lives in its own repo:
 [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
 
 ## Troubleshooting
 
-**`Cannot create symbolic link â€¦ A required privilege is not held by the client`** during
-`npm run dist:win` â€” electron-builder unpacks its `winCodeSign` tooling, which contains macOS
+**`Cannot create symbolic link … A required privilege is not held by the client`** during
+`npm run dist:win` — electron-builder unpacks its `winCodeSign` tooling, which contains macOS
 symlinks that Windows only lets you create with extra privilege. The app itself packages fine
 (`release/win-unpacked/`); only the NSIS installer step needs this. Fix either way:
 - Run `npm run dist:win` from an **Administrator** PowerShell, **or**
-- Turn on **Developer Mode** (Settings â†’ System â†’ For developers â†’ Developer Mode â†’ On), then build normally.
+- Turn on **Developer Mode** (Settings → System → For developers → Developer Mode → On), then build normally.
 
 ## Recording and playback notes
 
