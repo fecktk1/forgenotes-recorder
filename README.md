@@ -42,7 +42,7 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 
 1. Choose **Record locally** or sign in to your ForgeNotes account.
 2. Select Online call or In person / room, choose your microphone, and check the input meters.
-3. Start recording. Pause/resume when needed.
+3. Start recording. With **Announce recording aloud** on (the default), the app says “This meeting is being recorded.” once through your default audio output, right after capture starts. It is not injected into the call: remote participants only hear it if your speakers are on. Pause/resume when needed; resuming does not repeat it.
 4. **Stop & save** keeps the recording on this device. Use **Play recording**, **Open folder**, or **Upload & transcribe** in the local library. Upload requires an authorized account. Automatic upload is opt-in.
 
 Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
