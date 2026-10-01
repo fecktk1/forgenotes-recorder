@@ -42,7 +42,7 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 
 1. Choose **Record locally** or sign in to your ForgeNotes account.
 2. Select Online call or In person / room, choose your microphone, and check the input meters.
-3. Start recording. Pause/resume when needed.
+3. Start recording. With **Announce recording aloud** on (the default), the app plays a recorded voice saying “This meeting is being recorded.” once through your default audio output, right after capture starts. Pick the voice under the checkbox; **Preview** plays it. It is not injected into the call: remote participants only hear it if your speakers are on. Pause/resume when needed; resuming does not repeat it.
 4. **Stop & save** keeps the recording on this device. Use **Play recording**, **Open folder**, or **Upload & transcribe** in the local library. Upload requires an authorized account. Automatic upload is opt-in.
 
 Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
@@ -76,6 +76,10 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 - In-person mode sends `room_single_mic`; the transcription worker diarizes that microphone rather
   than labeling every voice as the owner.
 - Recording controls live in the app window; there's no global hotkey or tray recorder yet.
+- Announcement voices: the clips are pre-rendered files in `renderer/announce/` (made with Kokoro-82M, Apache-2.0), listed in
+  `renderer/announce/voices.json` together with the default voice. To change the voices, edit that file and
+  add or remove the matching `<id>.mp3`; `npm run verify` checks the list against the files. No system
+  speech voice is used.
 - The macOS build is a separate app: [forgenotes-recorder-mac](https://github.com/fecktk1/forgenotes-recorder-mac).
 
 ## GitHub release workflow
