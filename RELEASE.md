@@ -2,6 +2,32 @@
 
 This repository ships Windows only. macOS ships separately from `fecktk1/forgenotes-recorder-mac`.
 
+## Version 1.1.0 (release candidate, not published)
+
+Changes since v1.0.1:
+
+- **Recording announcement** (#15). When a recording starts, the app plays a recorded voice saying "This meeting is being recorded." once through the default audio output. On by default; **Announce recording aloud** turns it off, and a voice picker with **Preview** sits under it. It plays through the speakers and is not injected into the call, so remote participants only hear it if the speakers are on. Resuming from pause does not repeat it. If the clip cannot play, a note says so and the recording continues.
+- **Security hardening** (#17). The renderer runs sandboxed; the window only shows the app's own page (other navigation, new windows and webviews are refused) and IPC is answered only for that page. The sign-in token is written to disk only when Windows can encrypt it; otherwise it is kept in memory for that run and the user signs in again on the next launch. A plaintext token left by an older version is deleted.
+- **Electron 43.6.0 to 44.6.0** (Chromium 152, Node 24.18) (#17).
+- **Dependencies.** `npm audit --audit-level=low` reports 0 advisories. In the installed app this updates js-yaml (used by the updater) to 4.3.2; the rest are build tools.
+- Release documentation: draft-first build handoff (2b1de43) and this section.
+
+Upgrade note: users whose Windows profile cannot encrypt with DPAPI (rare) are signed out once after updating and must sign in on every launch. Everyone else stays signed in.
+
+Notes for the GitHub release (paste-ready):
+
+```
+ForgeNotes Recorder 1.1.0 for Windows
+
+- Recording announcement: when you start recording, the app says "This meeting is being recorded." through your speakers. Turn it off or pick another voice under "Announce recording aloud". People on a call only hear it if your speakers are on.
+- Security: the app's window is sandboxed and only shows its own page, and your sign-in is stored on disk only when Windows can encrypt it.
+- Electron 44.6.0 (Chromium 152).
+
+Internal unsigned Windows build. Windows SmartScreen may require More info, then Run anyway.
+```
+
+Status: not tagged, not released, not submitted to the Store. Before promotion, run the full [SECURITY_RELEASE_QA.md](SECURITY_RELEASE_QA.md) hardware pass on the exact draft artifacts, including the announcement (heard through the speakers and present in the saved recording) and an update from an installed 1.0.1. Then record the delivery here as was done for 1.0.1 below.
+
 ## September 8, 2026 delivery
 
 - [Windows v1.0.1](https://github.com/fecktk1/forgenotes-recorder/releases/tag/v1.0.1) is published from `b8673cd63f22ae48157f5ea854d04bd33f7a7730`. Its EXE, blockmap, checksum and `latest.yml` are public.
@@ -55,6 +81,33 @@ gh release view vVERSION --repo fecktk1/forgenotes-recorder
 ```
 
 The APPX belongs in Partner Center, not among the direct installer assets.
+
+## Build a draft locally (when GitHub Actions cannot run)
+
+The same steps as the workflow, on this machine, from the merged `main`. Use the public anon JWT (role `anon`) or the existing ignored `config.json`, never a service key. Save the paste-ready release notes as `release\notes.txt` first, and replace VERSION:
+
+```powershell
+Set-Location 'C:\Users\feckt\Projects\forgenotes-recorder'
+git fetch origin
+git switch main
+git pull --ff-only
+npm.cmd ci
+npm.cmd audit --audit-level=low
+npm.cmd run verify
+npm.cmd test
+npm.cmd run test:media-runtime
+npm.cmd run test:shell
+npm.cmd run dist:win
+npm.cmd run dist:store
+'release\ForgeNotes-Recorder-Setup.exe', 'release\ForgeNotes-Recorder-Setup.exe.blockmap', 'release\latest.yml' |
+  ForEach-Object { if (-not (Test-Path $_)) { throw "Missing $_" } }
+(Get-FileHash release\ForgeNotes-Recorder-Setup.exe -Algorithm SHA256).Hash.ToLower() + '  ForgeNotes-Recorder-Setup.exe' |
+  Set-Content release\ForgeNotes-Recorder-Setup.exe.sha256 -Encoding ascii
+gh release create vVERSION release\ForgeNotes-Recorder-Setup.exe release\ForgeNotes-Recorder-Setup.exe.blockmap release\latest.yml release\ForgeNotes-Recorder-Setup.exe.sha256 `
+  --repo fecktk1/forgenotes-recorder --draft --target (git rev-parse HEAD) --title "vVERSION — internal Windows build" --notes-file release\notes.txt
+```
+
+A draft creates no tag and is not served to the updater. Publishing it with the `gh release edit` commands above creates the tag at `--target`. That tag matches the workflow's `v*` trigger; if Actions run then, the workflow's own `gh release create` fails because the release exists, and nothing is replaced.
 
 ## Submit a future Store update
 

@@ -1,6 +1,6 @@
 {
   "name": "forgenotes-recorder",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "ForgeNotes desktop recorder for online calls and single-microphone room recordings.",
   "main": "main.js",
@@ -69,8 +69,9 @@
     }
   },
   "overrides": {
-    "fast-uri": "3.1.6",
-    "js-yaml": "4.3.1",
-    "@xmldom/xmldom": "0.8.15"
+    "fast-uri": "3.1.8",
+    "js-yaml": "4.3.2",
+    "@xmldom/xmldom": "0.8.15",
+    "global-agent": "4.1.3"
   }
 }
