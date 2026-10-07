@@ -211,6 +211,24 @@ handle('secure:set', async (_e, token) => tokens().set(token))
 
 handle('secure:clear', async () => tokens().clear())
 
+// ---------- IPC: this install's device id ----------
+// Sent with each recording's real start so ForgeNotes can tell two installs recording at the
+// same time on one account (see device-id.js). null when it cannot be kept on disk.
+const { createDeviceIdStore } = require('./device-id')
+let deviceIdStore = null
+const deviceIds = () =>
+  deviceIdStore ||
+  (deviceIdStore = createDeviceIdStore({
+    dir: USER_DATA(),
+    prefix: 'win',
+    log: (line) => {
+      console.warn(`[forgenotes] ${line}`)
+      void appendLog(line)
+    },
+  }))
+
+handle('device:id', async () => deviceIds().get())
+
 // ---------- IPC: external links ----------
 handle('open:external', async (_e, url) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) await shell.openExternal(url)

@@ -59,6 +59,11 @@ trimmed: the quiet part is kept and uploaded like the rest.
 upload, count captured audio only: the recording's clock stops while paused and while the computer
 sleeps. A sleep ends the current segment and waking starts a new one.
 
+**This install's id.** Each upload also sends `device_id`: an opaque id made once and kept in
+`device-id.txt` in the app's data folder (`win-` and a random UUID). ForgeNotes uses it only for
+"one live recording at a time per account", and only alongside the recording's own start; it is
+not sent for a recording whose start is unknown. When the file cannot be written, no id is sent.
+
 ## Building an installer
 
 ```sh
