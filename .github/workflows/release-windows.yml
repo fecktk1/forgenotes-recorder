@@ -42,11 +42,12 @@ jobs:
           npm run verify
           npm test
 
-      - name: Audit dependencies and verify Electron media runtime and shell hardening
+      - name: Audit dependencies and verify Electron media runtime, shell hardening and capture timing
         run: |
           npm audit --audit-level=low
           npm run test:media-runtime
           npm run test:shell
+          npm run test:capture-runtime
 
       - name: Build x64 internal installer
         run: npm run dist:win

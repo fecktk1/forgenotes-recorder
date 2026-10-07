@@ -24,3 +24,4 @@ jobs:
       - run: npm test
       - run: npm run test:media-runtime
       - run: npm run test:shell
+      - run: npm run test:capture-runtime

@@ -83,6 +83,12 @@ app
         true,
       )
       assert.match(answer, /ipc_sender_rejected/, `IPC refused for ${foreign.webContents.getURL().slice(0, 40)}`)
+      // The stop-on-silence notification channel is guarded the same way.
+      const asked = await foreign.webContents.executeJavaScript(
+        `window.desktop.silenceAsk('x').then(() => 'answered', (e) => String(e && e.message))`,
+        true,
+      )
+      assert.match(asked, /ipc_sender_rejected/, 'silence:ask refused for a foreign page')
       foreign.destroy()
     }
 

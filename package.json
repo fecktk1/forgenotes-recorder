@@ -6,14 +6,15 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "verify": "node --check renderer/app.js && node --check main.js && node scripts/verify-capture-profile.mjs",
+    "verify": "node --check renderer/capture-clock.js && node --check renderer/silence.js && node --check renderer/app.js && node --check main.js && node scripts/verify-capture-profile.mjs",
     "prepare:config": "node scripts/write-production-config.mjs",
     "dist:win": "npm run prepare:config && electron-builder --win --x64 --publish never",
     "release": "electron-builder --win --publish always",
     "dist:store": "npm run prepare:config && electron-builder --win appx --x64 --publish never && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-store-package.ps1",
-    "test": "node --test scripts/test-recording-store.cjs scripts/test-token-store.cjs",
+    "test": "node --test scripts/test-recording-store.cjs scripts/test-token-store.cjs scripts/test-capture-clock.cjs scripts/test-silence.cjs",
     "test:media-runtime": "electron scripts/test-media-runtime.cjs",
-    "test:shell": "electron scripts/test-shell-hardening.cjs"
+    "test:shell": "electron scripts/test-shell-hardening.cjs",
+    "test:capture-runtime": "electron scripts/test-capture-runtime.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
