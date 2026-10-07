@@ -47,6 +47,18 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 
 Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
 
+**Stop a recording by itself** is off unless you choose a time (Never, 5, 10 or 20 minutes). It is the
+same setting as on the web: it is kept with your account and this app uses the last value it saw (signed
+out, it is kept on this computer). When every captured track (microphone and call audio) has been quiet
+for that long minus a minute, the app asks “Still there?” with a chime, a notification, a flashing taskbar
+button and the window title, and stops a minute later if nobody chooses **Keep recording**. Nothing is
+trimmed: the quiet part is kept and uploaded like the rest.
+
+**Times.** A meeting's start and end are the recording's own (`started_at` / `ended_at`, kept in
+`meta.json`), however late it is uploaded. Segment offsets and durations, and the length sent at
+upload, count captured audio only: the recording's clock stops while paused and while the computer
+sleeps. A sleep ends the current segment and waking starts a new one.
+
 ## Building an installer
 
 ```sh

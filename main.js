@@ -8,7 +8,9 @@
 //    memory only when encryption is unavailable (never plaintext on disk)
 //  - persist recordings locally so a network failure never loses a capture (offline queue)
 //  - refuse navigation/new windows away from the app's own page, and answer IPC only for it
-const { app, BrowserWindow, ipcMain, shell, session, desktopCapturer, safeStorage } = require('electron')
+//  - tell the renderer when the computer goes to sleep and wakes (the recording's clock
+//    leaves the sleep out), and raise the "Still there?" question outside the window
+const { app, BrowserWindow, ipcMain, shell, session, desktopCapturer, safeStorage, powerMonitor, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { fileURLToPath } = require('node:url')
@@ -123,6 +125,11 @@ function createWindow() {
       // The preload only uses contextBridge and ipcRenderer, which sandboxed preloads
       // provide; it needs no Node.js access (same as the macOS recorder).
       sandbox: true,
+      // A recorder is mostly used minimized, behind the call. Chromium slows the timers of
+      // a hidden page (down to one wake-up a minute after a few minutes), and the
+      // recording's timers must keep time: segment rotation, the sleep heartbeat and the
+      // stop-on-silence readings.
+      backgroundThrottling: false,
     },
   })
 
@@ -252,7 +259,8 @@ const store = () => recordingStore(REC_DIR())
 let recordings
 const localStore = () => recordings || (recordings = store())
 handle('rec:checkpoint', (_e, { localId, meta, segment }) => localStore().checkpoint(localId, meta, segment))
-handle('rec:finish', (_e, localId) => localStore().update(localId, { state: 'saved' }))
+// details: { endedAt, stopReason }, filtered by recording-store's finishDetails.
+handle('rec:finish', (_e, { localId, details } = {}) => localStore().finish(localId, details))
 handle('rec:uploaded', (_e, { localId, sessionId }) => localStore().update(localId, { state: 'uploaded', sessionId }))
 handle('rec:segment', (_e, { localId, segment }) => localStore().readSegment(localId, segment))
 handle('rec:playback', (_e, localId) => localStore().playback(localId))
@@ -330,9 +338,85 @@ handle('rec:delete', async (_e, localId) => {
   return true
 })
 
+// ---------- sleep and wake ----------
+// Nothing is captured while the computer sleeps, but the wall clock keeps going. The
+// renderer is told when the computer suspends and resumes, with the time each event fired
+// here, so it can end the segment at suspend, start a new one at resume and keep the sleep
+// out of the recording's clock (renderer/capture-clock.js). Logged for support as well.
+function sendPower(state) {
+  const at = Date.now()
+  void appendLog(`power: ${state}`)
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('power:state', { state, at })
+}
+
+// ---------- "Still there?" ----------
+// Stop on silence (renderer/silence.js) asks before it stops a recording, and the question
+// has to be noticed by someone who is not looking at this window: the renderer chimes and
+// changes the window title, and main adds a system notification and flashes the taskbar
+// button (Windows) or bounces the Dock icon (macOS). Answering the notification is
+// answering "Keep recording".
+let silenceNotice = null // kept referenced so its click handler is not collected
+let dockBounce = null
+
+function clearSilenceAttention() {
+  if (silenceNotice) {
+    const note = silenceNotice
+    silenceNotice = null
+    try { note.close() } catch { /* already gone */ }
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try { mainWindow.flashFrame(false) } catch { /* not supported */ }
+  }
+  if (dockBounce !== null && app.dock) {
+    try { app.dock.cancelBounce(dockBounce) } catch { /* not supported */ }
+  }
+  dockBounce = null
+}
+
+handle('silence:ask', async (_e, { body } = {}) => {
+  clearSilenceAttention()
+  const text = typeof body === 'string' ? body.slice(0, 240) : ''
+  try {
+    if (Notification.isSupported()) {
+      const note = new Notification({ title: 'Still there?', body: text, silent: true, timeoutType: 'never' })
+      note.on('click', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (mainWindow.isMinimized()) mainWindow.restore()
+          mainWindow.show()
+          mainWindow.focus()
+          mainWindow.webContents.send('silence:keep')
+        }
+      })
+      note.show()
+      silenceNotice = note
+    }
+  } catch (e) {
+    console.warn('[forgenotes] could not show the silence notification:', (e && e.message) || e)
+  }
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isFocused()) {
+    try { mainWindow.flashFrame(true) } catch { /* not supported */ }
+    if (app.dock) {
+      try { dockBounce = app.dock.bounce('critical') } catch { dockBounce = null }
+    }
+  }
+  return true
+})
+
+handle('silence:clear', async () => {
+  clearSilenceAttention()
+  return true
+})
+
 // ---------- lifecycle ----------
+// Windows shows a notification only for an app with an Application User Model ID that
+// matches its Start-menu shortcut; the installer creates that shortcut with the appId. A
+// Store install has its identity from the package and needs none.
+if (process.platform === 'win32' && !process.windowsStore) app.setAppUserModelId('io.thecontentforge.forgenotes.recorder')
+
 app.whenReady().then(() => {
   createWindow()
+  powerMonitor.on('suspend', () => sendPower('suspend'))
+  powerMonitor.on('resume', () => sendPower('resume'))
   // Check GitHub Releases for a newer version, download it, and install on next quit.
   // Unsigned is fine on Windows: electron-updater verifies the download by sha512.
   // NOT in the Store build: a Store-installed app is updated by the Store, and an app that
