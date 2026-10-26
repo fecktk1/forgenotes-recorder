@@ -29,7 +29,7 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
    copy config.example.json config.json   # Windows
    # cp config.example.json config.json   # macOS/Linux
    ```
-   Then open `config.json` and paste the **public Supabase anon key** into `supabaseAnonKey`.
+   Then open `config.json` and paste the **public Supabase publishable key** (`sb_publishable_…`) into `supabaseAnonKey`.
    It's the same key the web app ships — copy it from Netlify (`VITE_SUPABASE_ANON_KEY`) or from
    the web app's network requests. **Never** put the service-role key here. `config.json` is
    git-ignored.
@@ -101,8 +101,9 @@ symlinks that Windows only lets you create with extra privilege. The app itself 
 
 ## GitHub release workflow
 
-The repository secret `FORGENOTES_SUPABASE_ANON_KEY` must contain only the public Supabase anon
-JWT. Pushing a version tag (for example `v0.4.0`) builds the x64 installer on Windows, publishes
+The repository secret `FORGENOTES_SUPABASE_ANON_KEY` (the name predates the key) must contain only
+the public Supabase publishable key, `sb_publishable_…`. The project disabled its legacy JWT keys on
+2026-10-21, so the build refuses one: every sign-in from it would fail. Pushing a version tag (for example `v0.4.0`) builds the x64 installer on Windows, publishes
 the installer plus SHA-256 checksum, and keeps the runtime service-role credential out of the app.
 
 See [RELEASE.md](RELEASE.md) for Windows 1.0.0 builds, GitHub publication and Microsoft Store submission.

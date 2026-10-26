@@ -57,7 +57,7 @@ npm.cmd run dist:win
 npm.cmd run dist:store
 ```
 
-The build reads the existing public anon configuration from ignored `config.json` or `FORGENOTES_SUPABASE_ANON_KEY`. Do not commit privileged keys. Packaging validates the app identity and version. If Windows rejects symbolic-link creation during packaging, use the existing authorized Developer Mode/elevated build setup.
+The build reads the existing public publishable-key configuration from ignored `config.json` or `FORGENOTES_SUPABASE_ANON_KEY`. Do not commit privileged keys. Packaging validates the app identity and version. If Windows rejects symbolic-link creation during packaging, use the existing authorized Developer Mode/elevated build setup.
 
 ## Build a draft through GitHub
 
@@ -84,7 +84,7 @@ The APPX belongs in Partner Center, not among the direct installer assets.
 
 ## Build a draft locally (when GitHub Actions cannot run)
 
-The same steps as the workflow, on this machine, from the merged `main`. Use the public anon JWT (role `anon`) or the existing ignored `config.json`, never a service key. Save the paste-ready release notes as `release\notes.txt` first, and replace VERSION:
+The same steps as the workflow, on this machine, from the merged `main`. Use the public publishable key (`sb_publishable_…`) or the existing ignored `config.json`, never a secret key; the build refuses legacy JWT keys, which the project disabled on 2026-10-21. Save the paste-ready release notes as `release\notes.txt` first, and replace VERSION:
 
 ```powershell
 Set-Location 'C:\Users\feckt\Projects\forgenotes-recorder'
