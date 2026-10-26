@@ -20,7 +20,7 @@
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
-    "electron": "44.6.0",
+    "electron": "44.9.3",
     "electron-builder": "26.15.3"
   },
   "build": {
@@ -71,7 +71,7 @@
     }
   },
   "overrides": {
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
     "js-yaml": "4.3.2",
     "@xmldom/xmldom": "0.8.15",
     "global-agent": "4.1.3"
