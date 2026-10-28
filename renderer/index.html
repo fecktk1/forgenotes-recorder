@@ -20,6 +20,11 @@
     </header>
 
     <main class="app-body">
+      <section class="card">
+        <label><input id="analytics-choice" type="checkbox" /> Share optional product analytics</label>
+        <p class="muted">Helps improve recording and upload reliability. Includes action outcomes and app version, never audio, meeting text, or email. This preference applies to your signed-in account.</p>
+        <p id="analytics-status" class="muted" aria-live="polite"></p>
+      </section>
       <!-- Config missing -->
       <section id="config-error" class="card error-card hidden">
         <h2>Setup needed</h2>
@@ -231,6 +236,7 @@
     <script src="capture-clock.js"></script>
     <script src="silence.js"></script>
     <script src="sign-in-errors.js"></script>
+    <script src="product-analytics.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
