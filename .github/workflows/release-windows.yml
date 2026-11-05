@@ -7,6 +7,10 @@ on:
         description: Keep release out of automatic updates pending physical capture QA
         type: boolean
         default: true
+      bridge_source_repo:
+        description: Also attach this release to the source repository, for installed copies that still check it (keep on until the source repository goes private)
+        type: boolean
+        default: true
   push:
     tags:
       - 'v*'
@@ -54,6 +58,18 @@ jobs:
         env:
           FORGENOTES_SUPABASE_ANON_KEY: ${{ secrets.FORGENOTES_SUPABASE_ANON_KEY }}
 
+      # The installed app checks the repository named in app-update.yml for updates. Checked
+      # before the Store build, which packs the same folder without an update feed.
+      - name: Confirm the update feed names the releases repository
+        shell: pwsh
+        run: |
+          $p = node -p "const p = require('./package.json').build.publish; p.owner + '/' + p.repo"
+          $feed = Get-Content 'release/win-unpacked/resources/app-update.yml' -Raw
+          if ($feed -notmatch "(?m)^owner: $(($p -split '/')[0])\s*$" -or $feed -notmatch "(?m)^repo: $(($p -split '/')[1])\s*$") {
+            throw "app-update.yml does not point at $p"
+          }
+          Write-Output "Update feed: $p"
+
       # The Microsoft Store package: an UNSIGNED .appx that Partner Center accepts and
       # Microsoft re-signs after certification. Never attached to the GitHub release —
       # it is only useful uploaded to the Store, and publishing an unsigned installer
@@ -94,30 +110,62 @@ jobs:
             release/ForgeNotes-Recorder-Setup.exe.sha256
           if-no-files-found: error
 
+      # Releases live in a public releases-only repository (package.json build.publish, which
+      # electron-builder also writes into the installed app's app-update.yml, so installed
+      # copies check that repository for updates). The source repository can then be private.
+      # Copies installed before the move still check THIS repository, so until it goes
+      # private each release is also attached here (bridge_source_repo; always on for a
+      # pushed tag). github.token cannot write to another repository: RELEASES_REPO_TOKEN is a
+      # fine-grained token with Contents read/write on the releases repository only.
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          # Tag push: publish exactly that tag (--verify-tag, unchanged behavior).
-          # Manual dispatch: publish v<package.json version> and let gh mint the tag
-          # at this commit via --target — so releases can be cut from environments
-          # that can push branches but not tags.
+          RELEASES_REPO="$(node -p "const p = require('./package.json').build.publish; p.owner + '/' + p.repo")"
+          if [[ -z "$RELEASES_TOKEN" ]]; then
+            echo "::error::RELEASES_REPO_TOKEN is not set: it needs Contents read/write on $RELEASES_REPO"
+            exit 1
+          fi
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="$GITHUB_REF_NAME"
-            EXTRA=(--verify-tag)
+            SOURCE_EXTRA=(--verify-tag)
           else
             TAG="v$(node -p "require('./package.json').version")"
-            EXTRA=(--target "$GITHUB_SHA")
+            SOURCE_EXTRA=(--target "$GITHUB_SHA")
           fi
-          if [[ "$RELEASE_DRAFT" == "true" ]]; then EXTRA+=(--draft); fi
-          gh release create "$TAG" \
-            release/ForgeNotes-Recorder-Setup.exe \
-            release/ForgeNotes-Recorder-Setup.exe.blockmap \
-            release/latest.yml \
-            release/ForgeNotes-Recorder-Setup.exe.sha256 \
-            "${EXTRA[@]}" \
-            --title "$TAG — internal Windows build" \
-            --notes "Internal unsigned Windows build. Windows SmartScreen may require More info → Run anyway."
+          DRAFT=()
+          if [[ "$RELEASE_DRAFT" == "true" ]]; then DRAFT=(--draft); fi
+          files=(
+            release/ForgeNotes-Recorder-Setup.exe
+            release/ForgeNotes-Recorder-Setup.exe.blockmap
+            release/latest.yml
+            release/ForgeNotes-Recorder-Setup.exe.sha256
+          )
+          notes="Internal unsigned Windows build. Windows SmartScreen may require More info → Run anyway."
+          # A release that already exists is left alone: publishing a draft creates its tag,
+          # and a pushed tag runs this workflow again.
+          if GH_TOKEN="$RELEASES_TOKEN" gh release view "$TAG" --repo "$RELEASES_REPO" >/dev/null 2>&1; then
+            echo "$RELEASES_REPO already has $TAG: not replaced."
+          else
+            # The tag is made on the releases repository's default branch; the source commit
+            # is named in the notes, since it does not exist there.
+            GH_TOKEN="$RELEASES_TOKEN" gh release create "$TAG" "${files[@]}" \
+              --repo "$RELEASES_REPO" "${DRAFT[@]}" \
+              --title "$TAG — Windows" \
+              --notes "$notes Built from $GITHUB_REPOSITORY@$GITHUB_SHA."
+          fi
+          if [[ "$BRIDGE_SOURCE" == "true" ]]; then
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "$GITHUB_REPOSITORY already has $TAG: not replaced."
+            else
+              gh release create "$TAG" "${files[@]}" \
+                --repo "$GITHUB_REPOSITORY" "${SOURCE_EXTRA[@]}" "${DRAFT[@]}" \
+                --title "$TAG — internal Windows build" \
+                --notes "$notes"
+            fi
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
           RELEASE_DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
+          BRIDGE_SOURCE: ${{ github.event_name != 'workflow_dispatch' || inputs.bridge_source_repo }}

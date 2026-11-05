@@ -2,6 +2,8 @@
 
 This repository ships Windows only. macOS ships separately from `fecktk1/forgenotes-recorder-mac`.
 
+Releases are published to the public releases-only repository **`fecktk1/forgenotes-recorder-releases`** (`build.publish` in `package.json`). electron-builder writes that repository into every installed copy's `app-update.yml`, so installed copies check it for updates and this source repository can be private. Copies installed before the move still check this repository, so until it goes private the workflow also attaches each release here (`bridge_source_repo`, on by default and always on for a pushed tag). The workflow writes to the releases repository with the `RELEASES_REPO_TOKEN` secret (a fine-grained token with Contents read/write on that repository only). The Microsoft Store copy is unaffected: it updates through the Store.
+
 ## Version 1.1.0 (release candidate, not published)
 
 Changes since v1.0.1:
@@ -76,8 +78,10 @@ Manual dispatch defaults to a draft and creates `v<package.json version>` at the
 Verify the draft has the EXE, EXE blockmap, EXE checksum and `latest.yml`. After acceptance, replace VERSION with the new package version:
 
 ```powershell
+gh release edit vVERSION --repo fecktk1/forgenotes-recorder-releases --draft=false --latest
+gh release view vVERSION --repo fecktk1/forgenotes-recorder-releases
+# While installed copies may still check the source repository (bridge on):
 gh release edit vVERSION --repo fecktk1/forgenotes-recorder --draft=false --latest
-gh release view vVERSION --repo fecktk1/forgenotes-recorder
 ```
 
 The APPX belongs in Partner Center, not among the direct installer assets.
@@ -104,10 +108,13 @@ npm.cmd run dist:store
 (Get-FileHash release\ForgeNotes-Recorder-Setup.exe -Algorithm SHA256).Hash.ToLower() + '  ForgeNotes-Recorder-Setup.exe' |
   Set-Content release\ForgeNotes-Recorder-Setup.exe.sha256 -Encoding ascii
 gh release create vVERSION release\ForgeNotes-Recorder-Setup.exe release\ForgeNotes-Recorder-Setup.exe.blockmap release\latest.yml release\ForgeNotes-Recorder-Setup.exe.sha256 `
+  --repo fecktk1/forgenotes-recorder-releases --draft --title "vVERSION — Windows" --notes-file release\notes.txt
+# While the bridge is on, the same files also go to the source repository:
+gh release create vVERSION release\ForgeNotes-Recorder-Setup.exe release\ForgeNotes-Recorder-Setup.exe.blockmap release\latest.yml release\ForgeNotes-Recorder-Setup.exe.sha256 `
   --repo fecktk1/forgenotes-recorder --draft --target (git rev-parse HEAD) --title "vVERSION — internal Windows build" --notes-file release\notes.txt
 ```
 
-A draft creates no tag and is not served to the updater. Publishing it with the `gh release edit` commands above creates the tag at `--target`. That tag matches the workflow's `v*` trigger; if Actions run then, the workflow's own `gh release create` fails because the release exists, and nothing is replaced.
+A draft creates no tag and is not served to the updater. Publishing it with the `gh release edit` commands above creates the tag (in the releases repository on its default branch, in the source repository at `--target`). A source-repository tag matches the workflow's `v*` trigger; if Actions run then, the workflow finds both releases already exist and replaces nothing.
 
 ## Submit a future Store update
 
