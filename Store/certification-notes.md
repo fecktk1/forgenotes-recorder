@@ -36,6 +36,10 @@ NOTES
 - "Online call" mode captures a user-selected system-audio device in addition
   to the mic; if no such device exists on the test machine the app records
   mic-only and says so. "In person / room" mode is sufficient for testing.
+- "Sign in with SSO" appears only for organizations that use single sign-on
+  and is not needed for testing. It opens the default web browser and returns
+  to the app through the forgenotes-recorder: link declared in the package
+  (windows.protocol); only one copy of the app runs at a time.
 - The Store build does not self-update (updates come from the Store); the
   GitHub-distributed build of the same app updates itself, which is why
   update code exists in the binary.

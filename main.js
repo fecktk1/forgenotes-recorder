@@ -10,11 +10,15 @@
 //  - refuse navigation/new windows away from the app's own page, and answer IPC only for it
 //  - tell the renderer when the computer goes to sleep and wakes (the recording's clock
 //    leaves the sleep out), and raise the "Still there?" question outside the window
+//  - "Sign in with SSO": run the PKCE flow (sso.js), open the identity provider in the system
+//    browser, and take the forgenotes-recorder://sso-callback link back through the
+//    single-instance lock (Windows opens a second copy of the app for the link)
 const { app, BrowserWindow, ipcMain, shell, session, desktopCapturer, safeStorage, powerMonitor, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { fileURLToPath } = require('node:url')
 const { createTokenStore } = require('./token-store')
+const sso = require('./sso')
 
 // Auto-update from GitHub Releases (packaged Windows only). Wrapped so a dev run or a
 // missing module never crashes startup.
@@ -33,6 +37,44 @@ const AUTH_FILE = () => path.join(USER_DATA(), 'auth.bin')
 const REC_DIR = () => path.join(USER_DATA(), 'recordings')
 
 let mainWindow = null
+
+// ---------- single instance and the sign-in link ----------
+// One copy of the app at a time. A forgenotes-recorder:// link (the end of Sign in with SSO)
+// starts a second copy with the link in its arguments; that copy hands them to this one through
+// 'second-instance' and quits before it opens a window. Links that come before the app is ready
+// wait in the inbox.
+let ssoFlow = null
+const ssoInbox = sso.createUrlInbox((url) => (ssoFlow ? ssoFlow.handleUrl(url) : false))
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+const isPrimaryInstance = sso.claimSingleInstance({
+  app,
+  argv: process.argv,
+  onUrl: (url) => ssoInbox.deliver(url),
+  onFocus: showMainWindow,
+})
+
+// The installer registers the scheme for the person who installed the app (build/installer.nsh);
+// this repeats it at each start so a moved install still answers. A Store install gets the scheme
+// from its package manifest and must not write the registry. A development run registers only on
+// request (FORGENOTES_REGISTER_PROTOCOL=1), so a checkout never takes over the link silently.
+function registerSignInScheme() {
+  if (process.windowsStore) return
+  try {
+    if (app.isPackaged) app.setAsDefaultProtocolClient(sso.SCHEME)
+    else if (process.env.FORGENOTES_REGISTER_PROTOCOL === '1') {
+      app.setAsDefaultProtocolClient(sso.SCHEME, process.execPath, [path.resolve(process.argv[1] || '.')])
+    }
+  } catch (e) {
+    console.warn('[forgenotes] could not register the sign-in link:', (e && e.message) || e)
+  }
+}
 
 // ---------- shell hardening ----------
 // The only page this app shows is its own renderer/index.html. A navigation or a new window
@@ -155,6 +197,12 @@ function createWindow() {
     { useSystemPicker: false },
   )
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (!ssoUndelivered) return
+    const result = ssoUndelivered
+    ssoUndelivered = null
+    mainWindow.webContents.send('sso:result', result)
+  })
   mainWindow.loadFile(APP_PAGE)
 }
 
@@ -234,6 +282,42 @@ handle('open:external', async (_e, url) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) await shell.openExternal(url)
   return true
 })
+
+// ---------- IPC: Sign in with SSO ----------
+// The verifier and the waiting sign-in stay here (sso.js); the page gets only the outcome, on
+// 'sso:result': { ok: true, session } (which it stores like a password sign-in) or
+// { ok: false, message }. A result that comes while the page is loading waits for it.
+let ssoUndelivered = null
+
+function sendSsoResult(result) {
+  if (result && result.ok) showMainWindow()
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send('sso:result', result)
+  } else {
+    ssoUndelivered = result
+  }
+}
+
+ssoFlow = sso.createSsoFlow({
+  fetch: (...args) => fetch(...args),
+  openExternal: (url) => shell.openExternal(url),
+  getConfig: loadConfig,
+  onResult: (result) => {
+    if (!result.ok) showMainWindow()
+    sendSsoResult(result)
+  },
+  log: (line) => void appendLog(line),
+})
+
+handle('sso:available', async () => {
+  try {
+    return await ssoFlow.available()
+  } catch {
+    return false
+  }
+})
+handle('sso:start', async (_e, email) => ssoFlow.start(typeof email === 'string' ? email.slice(0, 320) : ''))
+handle('sso:cancel', async () => ssoFlow.cancel())
 
 // Free disk space on the recordings volume (preflight). statfs is Node 18.15+/Electron;
 // returns null if unavailable so the renderer degrades gracefully (recording still works).
@@ -431,8 +515,10 @@ handle('silence:clear', async () => {
 // Store install has its identity from the package and needs none.
 if (process.platform === 'win32' && !process.windowsStore) app.setAppUserModelId('io.thecontentforge.forgenotes.recorder')
 
-app.whenReady().then(() => {
+if (isPrimaryInstance) app.whenReady().then(() => {
+  registerSignInScheme()
   createWindow()
+  ssoInbox.ready()
   powerMonitor.on('suspend', () => sendPower('suspend'))
   powerMonitor.on('resume', () => sendPower('resume'))
   // Check GitHub Releases for a newer version, download it, and install on next quit.

@@ -45,6 +45,17 @@ The video track that `getDisplayMedia` returns is stopped immediately — only a
 3. Start recording. With **Announce recording aloud** on (the default), the app plays a recorded voice saying “This meeting is being recorded.” once through your default audio output, right after capture starts. Pick the voice under the checkbox; **Preview** plays it. It is not injected into the call: remote participants only hear it if your speakers are on. Pause/resume when needed; resuming does not repeat it.
 4. **Stop & save** keeps the recording on this device. Use **Play recording**, **Open folder**, or **Upload & transcribe** in the local library. Upload requires an authorized account. Automatic upload is opt-in.
 
+**Sign in with SSO.** When single sign-on is on for ForgeNotes, the sign-in card offers **Sign in
+with SSO**: enter your work email and the app opens your company's sign-in page in your default
+browser (not inside the app: identity providers, password managers and passkeys need the real
+browser). When you finish, the browser hands back to the app on `forgenotes-recorder://sso-callback`
+and the app signs in; the sign-in is stored like a password sign-in (encrypted, see below). The app
+waits five minutes, and **Cancel** stops waiting. Only one copy of the app runs at a time: the
+link starts a second copy, which hands the link to the first and quits. The installer registers the
+link for the user who installed the app (and the uninstaller removes it); the Store package declares
+it in its manifest. The PKCE verifier stays in the main process (`sso.js`) and a link is used once,
+only while a sign-in this app started is waiting.
+
 Completed one-minute segments are checkpointed to disk during capture. Restarting after a crash exposes committed checkpoints; the current segment and any disk write still in flight can be lost. Successful upload retains the local copy until you choose Discard.
 
 **Stop a recording by itself** is off unless you choose a time (Never, 5, 10 or 20 minutes). It is the
