@@ -44,7 +44,7 @@
     "publish": {
       "provider": "github",
       "owner": "fecktk1",
-      "repo": "forgenotes-recorder",
+      "repo": "forgenotes-recorder-releases",
       "releaseType": "release"
     },
     "win": {
