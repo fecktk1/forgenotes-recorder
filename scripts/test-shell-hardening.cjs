@@ -1,8 +1,11 @@
 // Shell regression test: starts the real main.js (with a throwaway userData folder) and checks
 // that the window is sandboxed, the preload bridge still answers the app's own page, IPC is
 // refused for any other page, and navigation or window.open away from the app is blocked.
+// It also starts a second copy with a forgenotes-recorder:// sign-in link and checks that the
+// single-instance lock hands the link to this copy, which answers the page (no sign-in was waiting).
 // Physical capture, loopback routing and OS permission prompts remain hardware QA checks.
 const { app, BrowserWindow, safeStorage } = require('electron')
+const { spawn } = require('node:child_process')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -11,8 +14,13 @@ const path = require('node:path')
 // A fixed throwaway folder, emptied at the start of each run: Chromium keeps files in it open
 // until the process has exited, so it cannot be removed at the end of the run.
 const userData = path.join(os.tmpdir(), 'forgenotes-shell-test')
-fs.rmSync(userData, { recursive: true, force: true })
-fs.mkdirSync(userData, { recursive: true })
+// The second copy (started below with a link) shares the folder, so the lock is the same one,
+// and must not empty it under the first.
+const isSecondCopy = process.argv.some((arg) => /^forgenotes-recorder:/i.test(arg))
+if (!isSecondCopy) {
+  fs.rmSync(userData, { recursive: true, force: true })
+  fs.mkdirSync(userData, { recursive: true })
+}
 app.setPath('userData', userData)
 
 const timeout = setTimeout(() => {
@@ -36,8 +44,10 @@ async function firstWindow() {
 }
 
 require('../main.js')
+// The second copy has handed its link over and quit inside main.js; it runs no checks.
+if (isSecondCopy) clearTimeout(timeout)
 
-app
+if (!isSecondCopy) app
   .whenReady()
   .then(async () => {
     const win = await firstWindow()
@@ -89,8 +99,38 @@ app
         true,
       )
       assert.match(asked, /ipc_sender_rejected/, 'silence:ask refused for a foreign page')
+      const ssoAsked = await foreign.webContents.executeJavaScript(
+        `window.desktop.ssoStart('dana@acme.com').then(() => 'answered', (e) => String(e && e.message))`,
+        true,
+      )
+      assert.match(ssoAsked, /ipc_sender_rejected/, 'sso:start refused for a foreign page')
       foreign.destroy()
     }
+
+    // Sign in with SSO: with no publishable key configured, the button is not offered and a start
+    // says setup is needed, without any request.
+    assert.equal(await run('window.desktop.ssoAvailable()'), false)
+    const started = await run(`window.desktop.ssoStart('dana@acme.com')`)
+    assert.equal(started.ok, false)
+    assert.match(started.message, /not set up/)
+    assert.equal(await run('window.desktop.ssoCancel()'), false)
+
+    // Single instance: a second copy started with a sign-in link (what Windows does for the link)
+    // exits, and the link reaches this copy, which tells the page no sign-in was waiting.
+    const link = 'forgenotes-recorder://sso-callback?code=shell-test'
+    await run(`window.__ssoResults = []; window.desktop.onSsoResult((r) => window.__ssoResults.push(r)); true`)
+    const second = spawn(process.execPath, [__filename, link], { stdio: 'ignore' })
+    const exitCode = await new Promise((resolve) => second.once('exit', resolve))
+    assert.equal(exitCode, 0, 'the second copy quits')
+    let results = []
+    for (let i = 0; i < 100 && !results.length; i++) {
+      await delay(50)
+      results = await run('window.__ssoResults')
+    }
+    assert.equal(results.length, 1, 'the link reached the first copy')
+    assert.equal(results[0].ok, false)
+    assert.match(results[0].message, /cancelled or timed out/)
+    assert.equal(BrowserWindow.getAllWindows().length, 1, 'the second copy opened no window')
 
     console.log(
       JSON.stringify({

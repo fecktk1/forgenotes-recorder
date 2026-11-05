@@ -25,3 +25,4 @@ jobs:
       - run: npm run test:media-runtime
       - run: npm run test:shell
       - run: npm run test:capture-runtime
+      - run: npm run test:sso-runtime
