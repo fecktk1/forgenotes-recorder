@@ -48,6 +48,7 @@ jobs:
           npm run test:media-runtime
           npm run test:shell
           npm run test:capture-runtime
+          npm run test:sso-runtime
 
       - name: Build x64 internal installer
         run: npm run dist:win

@@ -14,7 +14,8 @@
     "test": "node --test scripts/test-recording-store.cjs scripts/test-token-store.cjs scripts/test-capture-clock.cjs scripts/test-silence.cjs scripts/test-device-id.cjs scripts/test-supabase-key.mjs scripts/test-sign-in-errors.cjs scripts/test-sso.cjs scripts/test-product-analytics.cjs",
     "test:media-runtime": "electron scripts/test-media-runtime.cjs",
     "test:shell": "electron scripts/test-shell-hardening.cjs",
-    "test:capture-runtime": "electron scripts/test-capture-runtime.cjs"
+    "test:capture-runtime": "electron scripts/test-capture-runtime.cjs",
+    "test:sso-runtime": "electron scripts/test-sso-runtime.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
