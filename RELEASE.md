@@ -2,6 +2,32 @@
 
 This repository ships Windows only. macOS ships separately from `fecktk1/forgenotes-recorder-mac`.
 
+## Version 1.2.0
+
+The app around the recorder was rebuilt (#41); capture, checkpoints and upload are unchanged.
+
+- **One app, three surfaces.** A recordings window (the list by day, on Mica where Windows has it, one pane beside it), a tray icon with a popover to start and stop, and a bar that floats over the call while a recording runs.
+- **Follows Windows.** Light or dark from the system, the system font and controls, the system's context menu for a recording. **Check for updates…** is in the tray icon's menu and in Settings; in the Store build it opens the Store page.
+- **Closing the window hides it to the tray**; the recording carries on. Exit during a recording now asks, and Stop and Quit saves it first (Windows used to drop the quit without a word).
+- **Follows your devices.** A headset plugged in or a new default input or output shows up without pressing anything, and the output that call audio is recorded from is named.
+- Update checks repeat every six hours, since the app now stays running. Only one copy of the app runs at a time.
+- `minimatch` in the build tools is pinned to 11.0.9 for the vulnerable range (GHSA-g3hv-75wg-m249): `npm audit --audit-level=low` reports 0 again.
+
+Notes for the GitHub release (paste-ready):
+
+```
+ForgeNotes Recorder 1.2.0 for Windows
+
+- A new app around the same recorder: your recordings by day in one window, a tray icon to start and stop from anywhere, and a small bar over your call while you record.
+- Looks like Windows: light or dark with your system, Mica on Windows 11.
+- Closing the window keeps ForgeNotes in the tray. Right-click the tray icon for Check for updates and Exit.
+- Follows your microphone and speakers when you change them.
+
+Internal unsigned Windows build. Windows SmartScreen may require More info, then Run anyway.
+```
+
+Checked before release: every suite on Windows 11 (build 26200), including the two new suites `test:layout` and `test:surfaces`, and a folder build. Not checked by a person before publication: physical microphone and loopback capture on the installer build, a click on the tray icon, Windows 10, and an update from an installed 1.1.1. Run [SECURITY_RELEASE_QA.md](SECURITY_RELEASE_QA.md) on the published build. The Store package (APPX) for 1.2.0 still has to be uploaded in Partner Center.
+
 ## Version 1.1.0 (release candidate, not published)
 
 Changes since v1.0.1:
