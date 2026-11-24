@@ -1,6 +1,6 @@
 {
   "name": "forgenotes-recorder",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "ForgeNotes desktop recorder for online calls and single-microphone room recordings.",
   "main": "main.js",
@@ -16,7 +16,8 @@
     "test:shell": "electron scripts/test-shell-hardening.cjs",
     "test:capture-runtime": "electron scripts/test-capture-runtime.cjs",
     "test:layout": "electron scripts/test-layout.cjs",
-    "test:surfaces": "electron scripts/test-shell.cjs"
+    "test:surfaces": "electron scripts/test-shell.cjs",
+    "test:playback": "electron scripts/test-playback.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
