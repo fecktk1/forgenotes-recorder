@@ -20,7 +20,7 @@
     "test:playback": "electron scripts/test-playback.cjs"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9"
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "electron": "44.9.3",
