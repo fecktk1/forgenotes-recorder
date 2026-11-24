@@ -10,11 +10,12 @@
 //  - refuse navigation/new windows away from the app's own page, and answer IPC only for it
 //  - tell the renderer when the computer goes to sleep and wakes (the recording's clock
 //    leaves the sleep out), and raise the "Still there?" question outside the window
-const { app, BrowserWindow, ipcMain, shell, session, desktopCapturer, safeStorage, powerMonitor, Notification } = require('electron')
+const { app, BrowserWindow, ipcMain, nativeTheme, shell: desktop, session, desktopCapturer, safeStorage, powerMonitor, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { fileURLToPath } = require('node:url')
 const { createTokenStore } = require('./token-store')
+const { createShell, windowChrome, glassQuery, HAS_GLASS } = require('./shell')
 
 // Auto-update from GitHub Releases (packaged Windows only). Wrapped so a dev run or a
 // missing module never crashes startup.
@@ -109,12 +110,12 @@ async function loadConfig() {
   }
 }
 
-// The window opens at the size the person last left it and, the first time, at 480 x 700:
-// the Record view fits that without scrolling (scripts/test-layout.cjs). Sizes are the
-// page's own area (useContentSize), so the title bar and frame of each system do not eat
-// into it, and nothing in the page wraps down to the minimum.
-const WINDOW_DEFAULT = { width: 480, height: 700 }
-const WINDOW_MIN = { width: 440, height: 620 }
+// The window opens at the size the person last left it and, the first time, at 860 x 580:
+// the list of recordings beside the pane. Narrower than 620 the two take turns behind tabs,
+// down to 380 x 520. Sizes are the page's own area (useContentSize), and nothing in the
+// page wraps at any of them (scripts/test-layout.cjs).
+const WINDOW_DEFAULT = { width: 860, height: 580 }
+const WINDOW_MIN = { width: 380, height: 520 }
 const windowStateFile = () => path.join(app.getPath('userData'), 'window-state.json')
 
 function readWindowSize() {
@@ -157,8 +158,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     ...opening,
     useContentSize: true,
-    title: 'ForgeNotes Recorder',
-    backgroundColor: '#09090b',
+    title: 'ForgeNotes',
+    ...windowChrome(nativeTheme.shouldUseDarkColors),
     icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -177,6 +178,7 @@ function createWindow() {
 
   mainWindow.setMenuBarVisibility(false)
   rememberWindowSize(mainWindow, opening)
+  shell.attach(mainWindow)
 
   // System-audio loopback: when the renderer calls getDisplayMedia({audio:true}),
   // hand back a screen source for video (discarded) + the loopback audio stream.
@@ -198,7 +200,7 @@ function createWindow() {
     { useSystemPicker: false },
   )
 
-  mainWindow.loadFile(APP_PAGE)
+  mainWindow.loadFile(APP_PAGE, glassQuery())
 }
 
 // ---------- IPC: config ----------
@@ -274,7 +276,7 @@ handle('device:id', async () => deviceIds().get())
 
 // ---------- IPC: external links ----------
 handle('open:external', async (_e, url) => {
-  if (typeof url === 'string' && /^https?:\/\//i.test(url)) await shell.openExternal(url)
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) await desktop.openExternal(url)
   return true
 })
 
@@ -328,7 +330,7 @@ handle('rec:playback', (_e, localId) => localStore().playback(localId))
 handle('rec:folder', async (_e, localId) => {
   const dir = localStore().directory(localId)
   if (!(await fs.stat(dir)).isDirectory()) throw new Error('recording_folder_missing')
-  const error = await shell.openPath(dir)
+  const error = await desktop.openPath(dir)
   if (error) throw new Error(error)
 })
 
@@ -474,7 +476,31 @@ handle('silence:clear', async () => {
 // Store install has its identity from the package and needs none.
 if (process.platform === 'win32' && !process.windowsStore) app.setAppUserModelId('io.thecontentforge.forgenotes.recorder')
 
+// ---------- the app around the recorder window ----------
+// Tray icon and popover, the floating bar, the menus and Check for updates (shell.js).
+const isRecorderFrame = (frame) =>
+  Boolean(frame) && !frame.parent && Boolean(mainWindow) && !mainWindow.isDestroyed() && frame === mainWindow.webContents.mainFrame && isAppPage(frame.url)
+const shell = createShell({
+  getMainWindow: () => mainWindow,
+  isRecorderFrame,
+  handle,
+  getUpdater: () => autoUpdater,
+  log: appendLog,
+  // The page refuses to unload while it records, and Windows then drops a Quit without a
+  // word: the shell asks instead, and Stop and Quit saves the recording first.
+  quitWhileRecording: 'ask',
+})
+shell.onTheme((dark) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const chrome = windowChrome(dark)
+  if (!HAS_GLASS) mainWindow.setBackgroundColor(chrome.backgroundColor)
+  mainWindow.setTitleBarOverlay(chrome.titleBarOverlay)
+})
+
+const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
+
 app.whenReady().then(() => {
+  if (!shell.start()) return
   createWindow()
   powerMonitor.on('suspend', () => sendPower('suspend'))
   powerMonitor.on('resume', () => sendPower('resume'))
@@ -483,13 +509,15 @@ app.whenReady().then(() => {
   // NOT in the Store build: a Store-installed app is updated by the Store, and an app that
   // tries to update itself out from under the Store fails certification.
   if (autoUpdater && app.isPackaged && !process.windowsStore) {
-    autoUpdater.checkForUpdatesAndNotify().catch((e) => {
-      console.warn('[forgenotes] update check failed:', (e && e.message) || e)
-    })
+    const check = () => {
+      autoUpdater.checkForUpdatesAndNotify().catch((e) => {
+        console.warn('[forgenotes] update check failed:', (e && e.message) || e)
+      })
+    }
+    check()
+    // The app now stays running in the tray for days, so one check at launch is not enough.
+    setInterval(check, UPDATE_CHECK_INTERVAL_MS)
   }
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
 })
 
 app.on('window-all-closed', () => {

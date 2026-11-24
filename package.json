@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "verify": "node --check renderer/product-analytics.js && node --check renderer/capture-clock.js && node --check renderer/silence.js && node --check renderer/sign-in-errors.js && node --check renderer/app.js && node --check renderer/layout.js && node --check main.js && node --check device-id.js && node scripts/verify-capture-profile.mjs",
+    "verify": "node --check renderer/product-analytics.js && node --check renderer/capture-clock.js && node --check renderer/silence.js && node --check renderer/sign-in-errors.js && node --check renderer/app.js && node --check renderer/layout.js && node --check renderer/surfaces/popover.js && node --check renderer/surfaces/bar.js && node --check shell.js && node --check preload-surface.js && node --check main.js && node --check device-id.js && node scripts/verify-capture-profile.mjs",
     "prepare:config": "node scripts/write-production-config.mjs",
     "dist:win": "npm run prepare:config && electron-builder --win --x64 --publish never",
     "release": "electron-builder --win --publish always",
@@ -15,7 +15,8 @@
     "test:media-runtime": "electron scripts/test-media-runtime.cjs",
     "test:shell": "electron scripts/test-shell-hardening.cjs",
     "test:capture-runtime": "electron scripts/test-capture-runtime.cjs",
-    "test:layout": "electron scripts/test-layout.cjs"
+    "test:layout": "electron scripts/test-layout.cjs",
+    "test:surfaces": "electron scripts/test-shell.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -30,6 +31,8 @@
     "files": [
       "main.js",
       "preload.js",
+      "preload-surface.js",
+      "shell.js",
       "renderer/**",
       "icon.png",
       "config.json",
@@ -75,6 +78,7 @@
     "fast-uri": "3.1.9",
     "js-yaml": "4.3.2",
     "@xmldom/xmldom": "0.8.15",
-    "global-agent": "4.1.3"
+    "global-agent": "4.1.3",
+    "minimatch@>=7.0.0 <11.0.1": "11.0.9"
   }
 }
