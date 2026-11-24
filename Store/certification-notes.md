@@ -1,12 +1,18 @@
 # Microsoft Store — Notes for certification
 
 Paste-ready content for Partner Center → submission → **Notes for certification**.
-Microsoft has no structured credentials field; testers read this text.
+Microsoft has no structured credentials field; testers read that private field.
+
+The test account's email and password are **not** kept in this repository. The owner
+types them into the `TEST ACCOUNT` block directly in Partner Center's private
+"Notes for certification" field at submission time (the password was rotated on
+5 Nov 2026; the value once committed here is dead). Never commit them back here.
 
 ```
 TEST ACCOUNT
-Email: qa+forgenotes@thecontentforge.io
-Password: TestPassword
+(Supplied in Partner Center's private "Notes for certification" field.
+Email: <added in Partner Center>
+Password: <added in Partner Center>)
 
 WHAT THIS APP IS
 ForgeNotes Recorder is the Windows capture client for ForgeNotes, a meeting
